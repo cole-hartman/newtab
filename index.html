@@ -3,43 +3,111 @@
 
 <head>
 	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="color-scheme" content="dark">
+	<style>
+		html, body {
+			background-color: #1a1a1a;
+		}
+	</style>
 	<title>New Tab</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&display=swap" rel="stylesheet">
 	<link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
 	<div class="container">
 		<div class="time">
-			<p id="clock" class="fade-in">12:00:00 AM</p>
+			<p id="clock" role="timer" aria-live="off"></p>
 		</div>
 		<div class="date">
-			<p id="date" class="fade-in">Monday, January 1</p>
+			<p id="date"></p>
 		</div>
 	</div>
 
+	<script src="vendor/motion-14.14.0.js"></script>
 	<script>
-		function updateTime() {
-			const now = new Date();
-			const timeElement = document.getElementById('clock');
-			const dateElement = document.getElementById('date');
+		const clock = document.getElementById('clock');
+		const date = document.getElementById('date');
+		const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+		let previousTime = '';
+		const transitions = new Map();
 
-			const newTime = now.toLocaleTimeString('en-US', {
-				hour12: true
-			});
+		function finishTransition(slot) {
+			const transition = transitions.get(slot);
+			if (!transition) return;
+			transition.animations.forEach(animation => animation.stop());
+			transition.outgoing.remove();
+			transition.value.style.transform = '';
+			transition.value.style.opacity = '';
+			transitions.delete(slot);
+		}
 
-			if (timeElement.textContent !== newTime) {
-				timeElement.classList.remove('pulse');
-				void timeElement.offsetWidth; // Trigger reflow
-				timeElement.classList.add('pulse');
+		function animateCharacter(slot, character) {
+			finishTransition(slot);
+			const value = slot.firstElementChild;
+			if (reducedMotion.matches || !window.Motion) {
+				value.textContent = character;
+				return;
 			}
 
-			timeElement.textContent = newTime;
-			dateElement.textContent = now.toLocaleDateString('en-US', {
-				weekday: 'long',
-				year: 'numeric',
-				month: 'long',
-				day: 'numeric'
+			const outgoing = value.cloneNode(true);
+			outgoing.className = 'character-outgoing';
+			slot.append(outgoing);
+			value.textContent = character;
+			const transition = { value, outgoing, animations: [] };
+			transitions.set(slot, transition);
+			const ease = [0.22, 1, 0.36, 1];
+			transition.animations.push(
+				Motion.animate(outgoing, { y: [0, -12], opacity: [1, 0] }, {
+					duration: 0.35, ease
+				}),
+				Motion.animate(value, { y: [12, 0], opacity: [0, 1] }, {
+					duration: 0.55, ease,
+					onComplete: () => {
+						if (transitions.get(slot) === transition) finishTransition(slot);
+					}
+				})
+			);
+		}
+
+		reducedMotion.addEventListener('change', () => {
+			if (reducedMotion.matches) Array.from(transitions.keys()).forEach(finishTransition);
+		});
+
+		function updateTime() {
+			const now = new Date();
+			const time = now.toLocaleTimeString('en-US', { hour12: true });
+			if (time !== previousTime) {
+				clock.setAttribute('aria-label', time);
+				// Rebuild when the hour changes the number of characters.
+				if (time.length !== previousTime.length) {
+					Array.from(transitions.keys()).forEach(finishTransition);
+					clock.replaceChildren(...Array.from(time, character => {
+						const slot = document.createElement('span');
+						slot.className = /\d/.test(character) ? 'character digit' : 'character';
+						slot.setAttribute('aria-hidden', 'true');
+						const value = document.createElement('span');
+						value.className = 'character-value';
+						value.textContent = character;
+						slot.append(value);
+						return slot;
+					}));
+				} else {
+					Array.from(time).forEach((character, index) => {
+						if (character === previousTime[index]) return;
+						const slot = clock.children[index];
+						animateCharacter(slot, character);
+					});
+				}
+				previousTime = time;
+			}
+			const today = now.toLocaleDateString('en-US', {
+				weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
 			});
+			if (date.textContent !== today) date.textContent = today;
 		}
 
 		updateTime();

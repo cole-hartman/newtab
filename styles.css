@@ -1,91 +1,75 @@
 body {
 	margin: 0;
-	padding: 0;
-	height: 100vh;
+	padding: 0 1rem;
+	min-height: 100vh;
+	min-height: 100svh;
+	box-sizing: border-box;
 	display: flex;
 	justify-content: center;
 	align-items: center;
 	background-color: #1a1a1a;
 	color: #f0f0f0;
-	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+	font-family: "Instrument Serif", Georgia, "Times New Roman", serif;
+	font-optical-sizing: auto;
 }
 
-.container {
-	text-align: center;
-}
+.container { text-align: center; }
 
 .time {
-	font-size: 4rem;
+	font-size: clamp(2rem, 8vw, 4rem);
 	margin-bottom: 1rem;
+	animation: reveal 1.2s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .date {
-	font-size: 1.5rem;
+	font-size: clamp(1rem, 4vw, 1.5rem);
+	letter-spacing: 0.01em;
 	opacity: 0.8;
+	animation: reveal 1.2s 160ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-#clock,
-#date {
+#clock, #date {
 	margin: 0;
+	transition: transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Animation for initial page load */
-.fade-in {
-	animation: fadeIn 1.5s ease-out;
-}
-
-@keyframes fadeIn {
-	from {
-		opacity: 0;
-		transform: translateY(20px);
-	}
-
-	to {
-		opacity: 1;
-		transform: translateY(0);
-	}
-}
-
-/* Subtle pulse animation when time changes */
-.pulse {
-	animation: pulse 1s ease-out;
-}
-
-@keyframes pulse {
-	0% {
-		opacity: 1;
-	}
-
-	50% {
-		opacity: 1;
-		transform: scale(1.02);
-	}
-
-	100% {
-		opacity: 1;
-		transform: scale(1);
-	}
-}
-
-/* Hover effects */
-#clock:hover,
-#date:hover {
-	transform: scale(1.02);
-	transition: transform 0.3s ease;
-}
-
-/* Text shadow animation */
 #clock {
-	text-shadow: 0 0 10px rgba(240, 240, 240, 0.1);
-	animation: glow 3s ease-in-out infinite alternate;
+	font-weight: 400;
+	font-variant-numeric: lining-nums tabular-nums;
+	white-space: pre;
+	animation: glow 8s ease-in-out infinite alternate;
+}
+
+.character { position: relative; display: inline-block; }
+.digit { width: 1ch; }
+.character-value {
+	display: inline-block;
+}
+
+.digit .character-value { width: 100%; }
+.character-outgoing {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+}
+
+@keyframes reveal {
+	from { opacity: 0; transform: translateY(14px); filter: blur(6px); }
+	to { opacity: 1; transform: translateY(0); filter: blur(0); }
 }
 
 @keyframes glow {
-	from {
-		text-shadow: 0 0 10px rgba(240, 240, 240, 0.1);
-	}
+	from { text-shadow: 0 0 18px rgba(240, 240, 240, 0.05); }
+	to { text-shadow: 0 0 28px rgba(240, 240, 240, 0.18); }
+}
 
-	to {
-		text-shadow: 0 0 20px rgba(240, 240, 240, 0.3);
+@media (hover: hover) {
+	#clock:hover, #date:hover { transform: translateY(-2px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*, *::before, *::after {
+		animation: none !important;
+		transition: none !important;
 	}
 }
