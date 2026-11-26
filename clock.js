@@ -1,0 +1,83 @@
+const clock = document.getElementById('clock');
+const date = document.getElementById('date');
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+let previousTime = '';
+const transitions = new Map();
+
+function finishTransition(slot) {
+	const transition = transitions.get(slot);
+	if (!transition) return;
+	transition.animations.forEach(animation => animation.stop());
+	transition.outgoing.remove();
+	transition.value.style.transform = '';
+	transition.value.style.opacity = '';
+	transitions.delete(slot);
+}
+
+function animateCharacter(slot, character) {
+	finishTransition(slot);
+	const value = slot.firstElementChild;
+	if (reducedMotion.matches || !window.Motion) {
+		value.textContent = character;
+		return;
+	}
+
+	const outgoing = value.cloneNode(true);
+	outgoing.className = 'character-outgoing';
+	slot.append(outgoing);
+	value.textContent = character;
+	const transition = { value, outgoing, animations: [] };
+	transitions.set(slot, transition);
+	const ease = [0.22, 1, 0.36, 1];
+	transition.animations.push(
+		Motion.animate(outgoing, { y: [0, -12], opacity: [1, 0] }, {
+			duration: 0.35, ease
+		}),
+		Motion.animate(value, { y: [12, 0], opacity: [0, 1] }, {
+			duration: 0.55, ease,
+			onComplete: () => {
+				if (transitions.get(slot) === transition) finishTransition(slot);
+			}
+		})
+	);
+}
+
+reducedMotion.addEventListener('change', () => {
+	if (reducedMotion.matches) Array.from(transitions.keys()).forEach(finishTransition);
+});
+
+function updateTime() {
+	const now = new Date();
+	const time = now.toLocaleTimeString('en-US', { hour12: true });
+	if (time !== previousTime) {
+		clock.setAttribute('aria-label', time);
+		// Rebuild when the hour changes the number of characters.
+		if (time.length !== previousTime.length) {
+			Array.from(transitions.keys()).forEach(finishTransition);
+			clock.replaceChildren(...Array.from(time, character => {
+				const slot = document.createElement('span');
+				slot.className = /\d/.test(character) ? 'character digit' : 'character';
+				slot.setAttribute('aria-hidden', 'true');
+				const value = document.createElement('span');
+				value.className = 'character-value';
+				value.textContent = character;
+				slot.append(value);
+				return slot;
+			}));
+		} else {
+			Array.from(time).forEach((character, index) => {
+				if (character === previousTime[index]) return;
+				const slot = clock.children[index];
+				animateCharacter(slot, character);
+			});
+		}
+		previousTime = time;
+	}
+	const today = now.toLocaleDateString('en-US', {
+		weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+	});
+	if (date.textContent !== today) date.textContent = today;
+}
+
+updateTime();
+setInterval(updateTime, 1000);
