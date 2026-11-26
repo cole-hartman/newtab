@@ -1,3 +1,11 @@
+@font-face {
+	font-family: "Instrument Serif";
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: url("fonts/instrument-serif-regular.ttf") format("truetype");
+}
+
 body {
 	margin: 0;
 	padding: 0 1rem;
