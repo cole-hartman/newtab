@@ -26,7 +26,6 @@ body {
 .time {
 	font-size: clamp(2rem, 8vw, 4rem);
 	margin-bottom: 1rem;
-	animation: reveal 1.2s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .date {
